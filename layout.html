@@ -1,0 +1,459 @@
+<html>
+	<head>
+		<title>Layout Example</title>
+		<style type="text/css">
+			.wrapper{background-color: #EEE;margin-top: 10px;position: relative;}
+			.item{position: absolute;background-color: #CCC;text-align: center;}
+			.cur{background-color: #FFF;}
+		</style>
+		<script type="text/javascript" src="jquery-1.7.1.min.js"></script>
+		<script type="text/javascript">
+
+			var WIDTH = HEIGHT = 100,//暂时只支持长宽相当图片，TODO:http://jsfiddle.net/kTewC/13/
+				prv_cur = cur = 1,
+				v_matrix = matrix = [],
+				rows = columns = +(location.href.match(/[0-9]+/ig) || [10])[0],//当前性能尚未优化，TODO:position未改变item不作动画处理
+				images = [
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/253224_100.jpg",
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/130291_100.jpg",
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/139572_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/127735_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/571282_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/590093_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/912704_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/933828_100.jpg"
+				],//TODO:图片需要预加载
+				debug = !!(location.href.match(/[0-9]+/ig)),position_change_count = animate_count = 0;
+
+			/*
+			 *	算法描述：
+			 *	
+			 *	1、根据 位置数 确定占位矩阵 (√)
+			 *	1   2   3   4				*1  *2   3   4
+			 *	5   6   7   8    cur = 1	*5  *6   7   8
+			 *	9   10  11  12  --------->   9   10  11  12
+			 *	13  14  15  16	  matrix	 13  14  15  16
+			 *	17  18  19  20				 17  18  19  20
+			 *
+			 *	2、根据 位置数 确定 值矩阵 (√)
+			 *	1   2   3   4				*1  *1   2   3
+			 *	5   6   7   8    cur = 1	*1  *1   4   5
+			 *	9   10  11  12  --------->   6   7   8   9
+			 *	13  14  15  16	 v_matrix	 10  11  12  13
+			 *	17  18  19  20				 14  15  16  17
+			 *	
+			 *	3、占位矩阵 与 值矩阵转换，然后再按转换后的位置重新计算显示位置:(...ing)
+			 *
+			 *	转换步骤：	(1) - 根据 v_matrix 矩阵获取对应新的 位置数：getIndexByValue
+			 *				(2) - 根据 位置数 获取 占位矩阵：getCurMatrix
+			 *				(3) - 根据 显示位置 重建占位矩阵
+			 *
+			 *	(1) cur = 15 --> cur = 18
+			 *
+			 *	*1  *1   2   3     (1)		1   2   3   4		(2)		 1    2   3   4 	   (3)	    1    2    3   4 
+			 *	*1  *1   4   5   初始状态	5   6   7   8    cur = 18	 5    6   7   8	    cur = 15    5    6    7   8
+			 *	 6   7   8   9  --------->	9   10  11  12  ---------->  9    10  11  12  ----------->  9    10   11  12
+			 *	 10  11  12  13 			13  14  15  16	  matrix	 13  *14 *15  16	v_matrix    13  *15  *15  14
+			 *	 14 *15  16  17 			17 *18  19  20				 17  *18 *19  20			    16  *15  *15  17
+			 *	
+			 *	4、前一状态 到 当前状态的转换（?）
+			 *
+			 *		  prv: 							  now:
+			 *
+			 *  *1  *1   2   3 					1    2    3   4 
+			 *  *1  *1   4   5    				5    6    7   8
+			 *	 6   7   8   9   (1)--->(15)	9    10   11  12
+			 *	 10  11  12  13					13  *15  *15  14
+			 *	 14  15  16  17					16  *15  *15  17
+			 */
+
+			/**
+			 *
+			 *根据当前给定位置数获得所占据的显示位（2*2）矩阵 如：cur = 2，columns = 4，rows = 5，返回 [2,3,6,7]
+
+			 *	1   2   3   4				1   *2  *3  4
+			 *	5   6   7   8    cur = 2	5   *6  *7  8
+			 *	9   10  11  12  --------->  9   10  11  12
+			 *	13  14  15  16				13  14  15  16
+			 *	17  18  19  20				17  18  19  20
+			 *
+			 */
+			 var getCurMatrix = function(rows,columns,cur){
+				var next = cur + 1;
+				var down = cur + columns;
+				var corner = down + 1;
+				if(cur != rows * columns){
+					if(next != 1 && next % columns == 1){
+						next = cur - 1;
+						corner = down - 1;
+					}
+					if(down != 1 && down > rows * columns){
+						down = cur - columns;
+						corner = down + 1;
+					}
+				}else{
+					next = cur - 1;
+					down = cur - columns;
+					corner = down - 1;							
+				}
+				return [cur,next,down,corner];
+			};
+
+			/**
+			 *
+			 *根据当前给定位置数获得行列值，如：cur = 1,返回 [1,1]
+			 */
+			var getPosition = function(cur,columns,rows){
+				var row = parseInt((cur - 1) / columns + 1);
+				var col = parseInt((cur % columns)) || columns;
+				return [row,col];
+			};
+
+			/**
+			 *
+			 *根据当前给定位置数获得行列值，返回占位后显示矩阵，例如：cur = 2,columns = 4,rows = 5
+			 *
+			 *	1   2   3   4				1   *2  *2  3
+			 *	5   6   7   8    cur = 2	4   *2  *2  5
+			 *	9   10  11  12  --------->  6   7   8   9
+			 *	13  14  15  16				10  11  12  13
+			 *	17  18  19  20				14  15  16  17
+			 *
+			 */
+			var getValueMatrix = function(cur,columns,rows){
+				var v_matrix = [];
+				var matrix = getCurMatrix(rows,columns,cur);
+				var got_cur = false;
+				var count = 1;
+				for(var i = 1;i<=rows*columns;i++){
+					if(matrix.indexOf(i)==-1){
+						v_matrix[i] = count++;
+					}else{
+						v_matrix[i] = cur;
+						if(!got_cur){
+							got_cur = true;
+							count++;
+						}
+					}
+				}
+				return v_matrix;
+			};
+
+			var getTransferVMatrix = function(cur,columns,rows,org_cur){
+				var matrix = getCurMatrix(rows,columns,cur);
+				var v_matrix = [];
+				var count = 1;
+				for(var i = 1;i<=rows*columns;i++){
+					if(matrix.indexOf(i)==-1){
+						if(count == org_cur){
+							count++;
+						}
+						v_matrix[i] = count++;
+					}else{
+						v_matrix[i] = org_cur;
+					}
+				}
+				return v_matrix;
+			};
+
+			var transfer = function(prev_cur,v_matrix){
+				var cur = getIndexByValue(tv_matrix,6);
+				return getTransferVMatrix(cur,columns,rows,prev_cur);
+			};
+
+			/*
+			 *值与位置数转换
+			 */
+			var getIndexByValue = function(v_matrix,value){
+				for(var i in v_matrix){
+					if(value == v_matrix[i])
+						return (+i);
+				}
+				console.error("error value:"+value+" in "+v_matrix.join(","));
+			};
+
+			var getValueByIndex = function(v_matrix,index){
+				return v_matrix[index];
+			};
+
+			var printMatrix = function(matrix){
+				document.write("matrix:<br>");
+				for(var i = 1; i<= rows * columns;i++){
+
+					if(matrix.indexOf(i)>=0){
+						if(i<10)
+							document.write(i+"*&nbsp;&nbsp;");
+						else
+							document.write(i+"*&nbsp;");
+
+					}else{
+						document.write(i);
+						if(i<10)
+							document.write("&nbsp;&nbsp;&nbsp;");
+						else if(i<=99)
+							document.write("&nbsp;&nbsp;");
+					}
+					if(i%columns==0){
+						document.write("<br>");
+					}
+
+				}
+				document.write("<br>");
+			};
+
+			var printValueMatrix = function(v_matrix){
+				document.write("v_matrix:<br>");
+				for(var i = 1; i<= rows * columns;i++){
+					var v = v_matrix[i];
+					if(matrix.indexOf(i)>=0){
+						if(v<10)
+							document.write(v_matrix[i]+"*&nbsp;&nbsp;");
+						else
+							document.write(v_matrix[i]+"*&nbsp;");
+
+					}else{
+						document.write(v_matrix[i]);
+						if(v<10)
+							document.write("&nbsp;&nbsp;&nbsp;");
+						else if(v<=99)
+							document.write("&nbsp;&nbsp;");
+					}
+					if(i%columns==0){
+						document.write("<br>");
+					}
+				}
+				document.write("<br>");
+			};
+
+			var onItemClicked = function(event){
+				var item = event.srcElement;
+				if(item.className && item.className.indexOf('item') != -1){
+					prv_cur = cur;
+					cur = +$(item).data("value");
+					if(prv_cur == cur)
+						return;
+					var prev_cur = getIndexByValue(v_matrix,cur);
+					v_matrix = getTransferVMatrix(prev_cur,columns,rows,cur);
+					render(cur,v_matrix,rows,columns,true);
+				}
+			}
+
+			var getRandomImage = function(images){
+				return images && images.length?images[Math.floor(Math.random()*images.length)]:"";
+			}
+
+			var isSamePosition = function(item,index){
+				if(debug){
+					try{
+						var pos1 = getPosition(index,columns,rows);
+						var pos2 = [+item.position().top/WIDTH+1,+item.position().left/WIDTH+1];
+						if(pos1.join(':') != pos2.join(':')){
+							position_change_count++;
+							console.error('position change count:'+position_change_count+'\n'+pos1.join(':')+' --> '+pos2.join(':'));
+							console.error(item);
+						}else{
+							console.log(pos1.join(':')+' --> '+pos2.join(':'));
+						}
+					}catch(e){}
+				}
+				return false && +item.data('index') == index;
+			};
+
+			var render = function(cur,v_matrix,rows,columns,animate){
+				var wrapper = $('.wrapper').css({'width':WIDTH*columns,'height':HEIGHT*rows});
+				var count = 1,cur_index = 0;
+				var start = new Date().getTime();
+				if(animate){
+					$('.cur').removeClass("cur");
+				}
+				for(var i = 1;i<=rows*columns;i++){
+					var value = v_matrix[i];
+					var item = $('<div class="item"></div>');
+					var position = getPosition(i,columns,rows);
+					if(cur == value){
+						if(!animate){
+							if($('.cur').length==0){
+								item.addClass("cur").css({
+									'top':(position[0] - 1)*HEIGHT,
+									'left':(position[1] - 1)*WIDTH,
+									'width':WIDTH*2,
+									'height':HEIGHT*2,
+									'background-image':'url('+getRandomImage(images)+')',
+									'background-size':WIDTH*2+'px'
+								}).attr({
+									'id':"item"+value,
+									'data-value':value,
+									'data-index':i
+								});
+								wrapper.append(item);
+							}
+						}else{
+							if(cur_index == 0){
+								cur_index = i;
+							}
+						}
+					}else{
+						if (animate) {
+							var item = $('#item'+value);
+							if(debug){
+								isSamePosition(item,i);
+							}
+							if(value == prv_cur){
+								item.animate({
+									'top':(position[0] - 1)*HEIGHT,
+									'left':(position[1] - 1)*WIDTH,
+									'width':WIDTH,
+									'height':HEIGHT,
+									'background-size':WIDTH+'px'
+								},function(){
+									animate_count++;
+								});
+							}else{
+								item.animate({
+									'top':(position[0] - 1)*HEIGHT,
+									'left':(position[1] - 1)*WIDTH
+								},function(){
+									animate_count++;
+								});
+							}
+						}else{
+							item.css({
+								'top':(position[0] - 1)*HEIGHT,
+								'left':(position[1] - 1)*WIDTH,
+								'width':WIDTH,
+								'height':HEIGHT,
+								'background-image':'url('+getRandomImage(images)+')',
+								'background-size':WIDTH+'px'
+							}).attr({
+								'id':'item'+value,
+								'data-value':value,
+								'data-index':i
+							});
+							wrapper.append(item);
+						}
+					}
+				}
+				if(animate){
+					var position = getPosition(cur_index,columns,rows);
+					var item = $('#item'+cur);
+					item.addClass('cur').animate({
+						top:(position[0] - 1)*HEIGHT,
+						left:(position[1] - 1)*WIDTH,
+						width:WIDTH*2,
+						height:HEIGHT*2,
+						'background-size':WIDTH*2+'px'
+					},function(){
+						if(debug){
+							alert(rows+'*'+columns+'('+rows*columns+') in :'+(new Date().getTime() - start)/1000 +' seconds'+
+								'\n position change count:'+position_change_count+
+								'\n animate count:'+animate_count);
+							position_change_count = 0;
+							animate_count = 0;
+						}
+					});
+				}
+				wrapper.unbind('click',onItemClicked).bind('click',onItemClicked);
+			};
+
+			var init = function(){
+				v_matrix = getValueMatrix(prv_cur,columns,rows);
+			};
+
+			$(function(){
+				init();
+				render(prv_cur,v_matrix,rows,columns);
+			});
+
+			/*
+			$(function(){
+				var WIDTH = 100;
+				var wrapper = $(".wrapper").css({'width':WIDTH*columns,'height':WIDTH*rows});
+				var count = 1;
+				for(var i = 1;i<=rows*columns;i++){
+					var item = $('<div class="item"></div>');
+					var position = getPosition(i,columns,rows);
+					if(count == prev_cur)
+						count++;
+					if(matrix.indexOf(i)==-1){
+						item.html(count++).css({
+							top:(position[0] - 1)*WIDTH,
+							left:(position[1] - 1)*WIDTH,
+							width:WIDTH,
+							height:WIDTH,
+							'line-height':WIDTH+'px'
+						});
+						wrapper.append(item);
+					}else{
+						if($(".cur").length==0){
+							item.addClass("cur").html(prev_cur).css({
+								top:(position[0] - 1)*WIDTH,
+								left:(position[1] - 1)*WIDTH,
+								width:WIDTH*2,
+								height:WIDTH*2,
+								'line-height':WIDTH*2+'px'
+							});
+							wrapper.append(item);
+							count++;
+						}
+					}
+				}
+
+			});
+			*/
+			
+			var test = function(){
+
+				var default_cur = 1;
+				matrix = getCurMatrix(rows,columns,default_cur);
+				v_matrix = getValueMatrix(default_cur,columns,rows);
+
+				console.log("matrix:"+matrix);
+				printMatrix(matrix);
+				printValueMatrix(v_matrix);
+				console.log(v_matrix);
+				for(var i = 1;i<=rows*columns;i++){
+					console.log("cur:"+i+"->"+getPosition(i,columns,rows));
+				}
+
+				var cur = +(location.href.match(/[0-9]+/ig) || [1])[0];
+				var prev_cur = cur;
+				cur = getIndexByValue(v_matrix,cur);
+				matrix = getCurMatrix(rows,columns,cur);
+				v_matrix = getValueMatrix(cur,columns,rows);
+				tv_matrix = getTransferVMatrix(cur,columns,rows,prev_cur);
+
+				console.log("cur:"+cur);
+				console.log("matrix:"+matrix);
+				console.log("v_matrix:"+v_matrix);
+				printMatrix(matrix);
+				printValueMatrix(tv_matrix);
+
+				prev_cur = 12;
+				cur = getIndexByValue(tv_matrix,12);
+				matrix = getCurMatrix(rows,columns,cur);
+				tv_matrix = getTransferVMatrix(cur,columns,rows,prev_cur);
+				printMatrix(matrix);
+				printValueMatrix(tv_matrix);
+
+				prev_cur = 2;
+				cur = getIndexByValue(tv_matrix,2);
+				matrix = getCurMatrix(rows,columns,cur);
+				tv_matrix = getTransferVMatrix(cur,columns,rows,prev_cur);
+				printMatrix(matrix);
+				printValueMatrix(tv_matrix);
+
+				prev_cur = 6;
+				cur = getIndexByValue(tv_matrix,6);
+				matrix = getCurMatrix(rows,columns,cur);
+				tv_matrix = getTransferVMatrix(cur,columns,rows,prev_cur);
+				printMatrix(matrix);
+				printValueMatrix(tv_matrix);
+			}
+
+		</script>
+	</head>
+	<body>
+		<div class="wrapper">
+		</div>
+	</body>
+</html>
