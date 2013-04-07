@@ -20,8 +20,18 @@
 					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/127735_100.jpg", 
 					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/571282_100.jpg", 
 					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/590093_100.jpg", 
-					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/912704_100.jpg", 
-					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/933828_100.jpg"
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/139572_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/127735_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/571282_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/590093_100.jpg",
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/139572_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/127735_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/571282_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/590093_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/139572_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/127735_100.jpg", 
+					"http://sandbox.runjs.cn/uploads/rs/90/wwourf2n/571282_100.jpg"
+
 				],//TODO:图片需要预加载
 				debug = !!(location.href.match(/[0-9]+/ig)),position_change_count = animate_count = 0;
 
@@ -266,7 +276,7 @@
 				if(animate){
 					$('.cur').removeClass("cur");
 				}
-				for(var i = 1;i<=rows*columns;i++){
+				for(var i = 1;i<=images.length - 1;i++){
 					var value = v_matrix[i];
 					var item = $('<div class="item"></div>');
 					var position = getPosition(i,columns,rows);
@@ -278,7 +288,7 @@
 									'left':(position[1] - 1)*WIDTH,
 									'width':WIDTH*2,
 									'height':HEIGHT*2,
-									'background-image':'url('+getRandomImage(images)+')',
+									'background-image':'url('+images[i]+')',
 									'background-size':WIDTH*2+'px'
 								}).attr({
 									'id':"item"+value,
@@ -322,7 +332,7 @@
 								'left':(position[1] - 1)*WIDTH,
 								'width':WIDTH,
 								'height':HEIGHT,
-								'background-image':'url('+getRandomImage(images)+')',
+								'background-image':'url('+images[i]+')',
 								'background-size':WIDTH+'px'
 							}).attr({
 								'id':'item'+value,
