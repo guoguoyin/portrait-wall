@@ -4,7 +4,7 @@
  * Since:2013-04-07
  * 
  * TODOs:
- * 1、暂时只支持长宽相当图片，http://jsfiddle.net/kTewC/13/
+ * 1、暂时只支持长宽相同图片，http://jsfiddle.net/kTewC/13/
  * 2、当前性能尚未优化，position未改变item不作动画处理
  * 3、图片需要预加载
  */
@@ -20,6 +20,12 @@
 		images : [],
 		hdimages:[],
 		css:[],
+		//当大图现实后调用
+		onHDShow:function(){},
+		//当大图被点击后调用
+		onHDClick:function(){},
+		//当不存在大图的头像被点击后调用
+		onNoHDClick:function(){},
 		debug : false
 	},
 	
@@ -125,10 +131,19 @@
 	var onItemClicked = function(event) {
 		var item = event.srcElement;
 		if (item.className && item.className.indexOf('item') != -1) {
+			var hashd = +$(item).data('hashd');
+			if(!hashd){
+				if(typeof options.onNoHDClick === 'function'){
+					options.onNoHDClick.call(this,item,options);
+				}
+				return;
+			}
 			prv_cur = cur;
 			cur = +$(item).data("value");
 			if (prv_cur == cur){
-				options.onHDClick.call(this,item,options);
+				if(typeof options.onHDClick === 'function'){
+					options.onHDClick.call(this,item,options);
+				}
 				return;
 			}
 			var prev_cur = getIndexByValue(v_matrix, cur);
@@ -257,7 +272,9 @@
 				height : options.height * 2,
 				'background-size' : options.width * 2 + 'px'
 			}, function() {
-				options.onHDShow.call(this,item,options);
+				if(typeof options.onHDShow === 'function'){
+					options.onHDShow.call(this,item,options);
+				}
 				if (options.debug) {
 					alert(rows + '*' + columns + '(' + rows * columns + ') in :' + (new Date().getTime() - start) / 1000 + ' seconds' + '\n position change count:' + position_change_count + '\n animate count:' + animate_count);
 					position_change_count = 0;
