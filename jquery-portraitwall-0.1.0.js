@@ -7,6 +7,8 @@
  * 1、暂时只支持长宽相同图片，http://jsfiddle.net/kTewC/13/
  * 2、当前性能尚未优化，position未改变item不作动画处理
  * 3、图片需要预加载
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0.txt
  */
 ;(function($) {
 	
