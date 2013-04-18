@@ -1,14 +1,14 @@
-#一瞥
-###2行7列
+# 一瞥
+### 2行7列
 ![Demo][1]
-###3行4列
+### 3行4列
 ![Demo2][2]
   [1]: http://git.oschina.net/bluishoul/portrait-wall/raw/master/res/demo.png
   [2]: http://git.oschina.net/bluishoul/portrait-wall/raw/master/res/demo2.png
   [3]: http://sandbox.runjs.cn/show/oxynfmff
-###[演示地址][3]
+### [演示地址][3]
 
-#算法描述
+# 算法描述
 
 1、根据 位置数 确定占位矩阵 (√)
 
