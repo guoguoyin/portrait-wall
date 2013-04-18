@@ -334,10 +334,31 @@
 		}
 		wrapper.off('click','.item',onItemClicked).on('click','.item', onItemClicked);
 	};
+	
+	var preLoadImages = function(imgs,callback){
+		var size = imgs.length;
+		var count = 0;
+		for (var i=0;i<size;i++) {
+			var img = imgs[i];
+			var image = new Image();
+			image.onload = function(){
+				count++;
+				if(count==size && callback){
+					callback(image);
+				}
+			};
+			image.src = img;
+		}
+	};
 
 	var init = function() {
-		v_matrix = getValueMatrix(prv_cur, options.columns, options.rows);
-		render(prv_cur, v_matrix, options.rows, options.columns);
+		var doInit = function(){
+			v_matrix = getValueMatrix(prv_cur, options.columns, options.rows);
+			render(prv_cur, v_matrix, options.rows, options.columns);
+		};
+		//预加载图片
+		preLoadImages(options.images);
+		preLoadImages(options.hdimages,doInit);
 	};
 
 	$.fn.portraitwall = function(opts) {
