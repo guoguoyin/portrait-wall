@@ -1,3 +1,8 @@
+
+![Demo][1]
+
+  [1]: http://git.oschina.net/bluishoul/portrait-wall/raw/master/res/demo.png
+
 算法描述：
 
 1、根据 位置数 确定占位矩阵 (√)
