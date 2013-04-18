@@ -250,7 +250,7 @@
 							'left' : (position[1] - 1) * options.width,
 							'width' : options.width * 2,
 							'height' : options.height * 2,
-							'background-image' : 'url(' + options.images[count] + ')',
+							'background-image' : 'url(' + options.hdimages[count] + ')',
 							'background-size' : options.width * 2 + 'px'
 						}).attr({
 							'id' : "item" + value,
