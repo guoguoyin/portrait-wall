@@ -1,5 +1,14 @@
 /**
  * jQuery Portrait Wall 0.1.0
+ * 以墙的方式显示用户高清头像和基本信息以及动态等，初始第一个头像为当前用户头像，当点击某头像时，该头像将就近放大为高清头像，其余头像自动缩小和移位。
+ * ---------------          ---------------
+ * | * | | | | | |          | | | | | | | |
+ * ---------------          ---------------
+ * | | | | | | | |  ----->  | | * | | | | |  
+ * ---------------          ---------------
+ * | | | | | | | |          | | | | | | | |
+ * ---------------          ---------------
+ * 
  * Author: bluishoul
  * Since:2013-04-07
  * 
@@ -7,8 +16,6 @@
  * 1、暂时只支持长宽相同图片，http://jsfiddle.net/kTewC/13/
  * 2、当前性能尚未优化，position未改变item不作动画处理
  * 3、图片需要预加载
- *
- * http://www.apache.org/licenses/LICENSE-2.0.txt
  */
 ;(function($) {
 	
@@ -37,11 +44,25 @@
 	       		'.portrait-wall .cur{}',
 	       '</style>'].join('\n'),
 	       
-	prv_cur = cur = 1, v_matrix = matrix = [],
+	//前一个高清头像显示位置       
+	prv_cur =1,
+	//当前要显示的高清头像位置
+	cur = 1,
+	//对应编号头像所显示的位置矩阵（值矩阵）
+	v_matrix =[],
+	//在 rows*columns 矩阵中某一位置扩展出2*2的位置以显示当前高清头像
+	matrix = [],
 	
 	// debug 相关统计参数
 	position_change_count = animate_count = 0;
 
+	/**
+	 * 获取当前显示高清头像的占位矩阵
+	 * 
+	 * rows:头像墙行数
+	 * columns:头像墙列数
+	 * cur:当前选取要扩展的位置
+	 */
 	var getCurMatrix = function(rows, columns, cur) {
 		var next = cur + 1;
 		var down = cur + columns;
@@ -65,8 +86,11 @@
 	};
 
 	/**
-	 * 
 	 * 根据当前给定位置数获得行列值，如：cur = 1,返回 [1,1]
+	 *
+	 * cur:当前位置
+	 * rows:头像墙行数
+	 * columns:头像墙列数
 	 */
 	var getPosition = function(cur, columns, rows) {
 		var row = parseInt((cur - 1) / columns + 1);
@@ -74,6 +98,9 @@
 		return [ row, col ];
 	};
 
+	/**
+	 * 获得初始化值矩阵
+	 */
 	var getValueMatrix = function(cur, columns, rows) {
 		var v_matrix = [];
 		var matrix = getCurMatrix(rows, columns, cur);
@@ -93,6 +120,14 @@
 		return v_matrix;
 	};
 
+	/**
+	 * 获得转换后的值矩阵
+	 * 
+	 * cur:当前位置数
+	 * rows:头像墙行数
+	 * columns:头像墙列数
+	 * org_cur:上一个高清头像位置
+	 */
 	var getTransferVMatrix = function(cur, columns, rows, org_cur) {
 		var matrix = getCurMatrix(rows, columns, cur);
 		var v_matrix = [];
@@ -115,8 +150,8 @@
 		return getTransferVMatrix(cur, options.columns, options.rows, prev_cur);
 	};
 
-	/*
-	 * 值与位置数转换
+	/**
+	 * 根据值矩阵值获得位置数
 	 */
 	var getIndexByValue = function(v_matrix, value) {
 		for ( var i in v_matrix) {
@@ -126,34 +161,38 @@
 		console.error("error value:" + value + " in " + v_matrix.join(","));
 	};
 
+	/**
+	 * 更具位置数获取值矩阵值
+	 */
 	var getValueByIndex = function(v_matrix, index) {
 		return v_matrix[index];
 	};
 
 	var onItemClicked = function(event) {
-		var item = event.srcElement;
-		if (item.className && item.className.indexOf('item') != -1) {
-			var hashd = +$(item).data('hashd');
-			if(!hashd){
-				if(typeof options.onNoHDClick === 'function'){
-					options.onNoHDClick.call(this,item,options);
-				}
-				return;
+		var item = $(this);
+		var hashd = +$(item).data('hashd');
+		if(!hashd){
+			if(typeof options.onNoHDClick === 'function'){
+				options.onNoHDClick.call(this,item,options);
 			}
-			prv_cur = cur;
-			cur = +$(item).data("value");
-			if (prv_cur == cur){
-				if(typeof options.onHDClick === 'function'){
-					options.onHDClick.call(this,item,options);
-				}
-				return;
-			}
-			var prev_cur = getIndexByValue(v_matrix, cur);
-			v_matrix = getTransferVMatrix(prev_cur, options.columns, options.rows, cur);
-			render(cur, v_matrix, options.rows, options.columns, true);
+			return;
 		}
+		prv_cur = cur;
+		cur = +$(item).data("value");
+		if (prv_cur == cur){
+			if(typeof options.onHDClick === 'function'){
+				options.onHDClick.call(this,item,options);
+			}
+			return;
+		}
+		var prev_cur = getIndexByValue(v_matrix, cur);
+		v_matrix = getTransferVMatrix(prev_cur, options.columns, options.rows, cur);
+		render(cur, v_matrix, options.rows, options.columns, true);
 	}
 
+	/**
+	 * 随机获取图片，用于debug
+	 */
 	var getRandomImage = function(images) {
 		return images && images.length ? images[Math.floor(Math.random() * images.length)] : "";
 	}
@@ -179,6 +218,15 @@
 		return false && +item.data('index') == index;
 	};
 
+	/**
+	 * 视图渲染
+	 * 
+	 * cur：当前位置
+	 * v_matrix：值矩阵
+	 * rows:头像墙行数
+	 * columns:头像墙列数
+	 * animate：是否启用动画（初始化与切换）
+	 */
 	var render = function(cur, v_matrix, rows, columns, animate) {
 		var wrapper = selector.css({
 			'width' : options.width * columns,
@@ -189,7 +237,7 @@
 		if (animate) {
 			$('.cur').removeClass("cur");
 		}
-		var total_count = options.images.length+1;
+		var total_count = options.images.length+4;
 		for ( var i = 1; i <= total_count; i++) {
 			var value = v_matrix[i];
 			var item = selector.find('#'+'item' + value);
@@ -284,7 +332,7 @@
 				}
 			});
 		}
-		wrapper.unbind('click', onItemClicked).bind('click', onItemClicked);
+		wrapper.off('click','.item',onItemClicked).on('click','.item', onItemClicked);
 	};
 
 	var init = function() {
