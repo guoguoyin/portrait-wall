@@ -29,7 +29,7 @@
 		images : [],
 		hdimages:[],
 		css:[],
-		//当大图现实后调用
+		//当大图显示后调用
 		onHDShow:function(){},
 		//当大图被点击后调用
 		onHDClick:function(){},
@@ -39,11 +39,11 @@
 	},
 	
 	css = ['<style type="text/css" id="portrait-wall-css">',
-	       		'.portrait-wall{position: relative;}',
-	       		'.portrait-wall .item{background-color:#EEE;position: absolute;text-align: center;}',
-	       		'.portrait-wall .cur{}',
-	       '</style>'].join('\n'),
-	       
+            '.portrait-wall{position: relative;}',
+            '.portrait-wall .item{background-color:#EEE;position: absolute;text-align: center;}',
+            '.portrait-wall .cur{}',
+            '</style>'].join('\n'),
+            
 	//前一个高清头像显示位置       
 	prv_cur =1,
 	//当前要显示的高清头像位置
@@ -54,7 +54,8 @@
 	matrix = [],
 	
 	// debug 相关统计参数
-	position_change_count = animate_count = 0;
+	position_change_count = 0,
+    animate_count = 0;
 
 	/**
 	 * 获取当前显示高清头像的占位矩阵
@@ -244,7 +245,7 @@
 			var position = getPosition(i, columns, rows);
 			if (cur == value) {
 				if (!animate) {
-					if ($('.cur').length == 0) {
+					if ($('.cur').length === 0) {
 						item.addClass("cur").css({
 							'top' : (position[0] - 1) * options.height,
 							'left' : (position[1] - 1) * options.width,
@@ -261,7 +262,7 @@
 						});
 					}
 				} else {
-					if (cur_index == 0) {
+					if (cur_index === 0) {
 						cur_index = i;
 					}
 				}
