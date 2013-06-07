@@ -25,7 +25,7 @@
 *3、构建需要显示的头像item*
 
 可利用模版语言在 portrait-wall 中生成，也可以用 Javascript 生成，以下以 Javascript 方式为例：
-	
+```javascript	
     $(function(){
       var pt = $(".portrait-wall");
       var item_tpl = '<div class="item" id="" title="" data-hashd="1"><div class="info"><a href="http://www.oschina.net/" target="_blank">OSChina</a></div></div>';
@@ -41,9 +41,9 @@
       //下面启用插件以及配置参数
       *****
     });
-
+```
 *4、启用 portrait-wall 插件，并配置参数*
-
+```javascript
     $(".portrait-wall").portraitwall({
           width: 100,
           height: 100,
@@ -80,7 +80,7 @@
               '.portrait-wall .info.show{bottom:0px;}'
           ]
  	 });
-
+```
 *4、1 参数详解*  
 
 `width`：小头像宽  
